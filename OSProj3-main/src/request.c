@@ -1,6 +1,7 @@
 #include "io_helper.h"
 #include "request.h"
-
+#include <pthread.h>
+#include <semaphore.h>
 #define MAXBUF (8192)
 
 
@@ -8,9 +9,32 @@
 //	TODO: add code to create and manage the buffer
 //
 
-//
-// Sends out HTTP response in case of errors
-//
+int num_threads = DEFAULT_THREADS;
+int buffer_max_size = DEFAULT_BUFFER_SIZE;
+int scheduling_algo = DEFAULT_SCHED_ALGO;
+
+
+
+#define MAX_REQUESTS 16 
+
+int buffer[MAX_REQUESTS];        
+int buf_front = 0;               
+int buf_rear = 0;                
+int buf_count = 0;               
+
+pthread_mutex_t buf_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t buf_not_empty = PTHREAD_COND_INITIALIZER;
+pthread_cond_t buf_not_full = PTHREAD_COND_INITIALIZER;
+
+typedef struct {
+  int fd;
+  char buffer[MAXBUF];
+  int size;
+} webRequest;
+
+webRequest globalBuffer[MAX_REQUESTS];//global buffer
+
+//Sends out HTTP response in case of errors
 void request_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg) {
     char buf[MAXBUF], body[MAXBUF];
     
@@ -68,7 +92,7 @@ int request_parse_uri(char *uri, char *filename, char *cgiargs) {
 	strcpy(cgiargs, "");
 	sprintf(filename, ".%s", uri);
 	if (uri[strlen(uri)-1] == '/') {
-	    strcat(filename, "index.html");
+    sprintf(filename, "./files%s", uri);
 	}
 	return 1;
     } else { 
@@ -135,6 +159,49 @@ void request_serve_static(int fd, char *filename, int filesize) {
 void* thread_request_serve_static(void* arg)
 {
 	// TODO: write code to actualy respond to HTTP requests
+  if (scheduling_algo = 0){//FIFO
+
+    
+  }
+
+  if (scheduling_algo = 1){//SFF
+
+
+  }
+
+  if (scheduling_algo = 2){//Random
+
+
+  }
+
+  while (1) {
+    int connfd;
+
+    pthread_mutex_lock(&buf_mutex);
+
+    while (buf_count == 0)  // wait if buffer empty
+        pthread_cond_wait(&buf_not_empty, &buf_mutex);
+
+    connfd = buffer[buf_front];
+    buf_front = (buf_front + 1) % MAX_REQUESTS;
+    buf_count--;
+
+    pthread_cond_signal(&buf_not_full);  // notify producers
+    pthread_mutex_unlock(&buf_mutex);
+
+    // Serve the request now that we have the fd
+    struct stat sbuf;
+    char filename[MAXBUF], cgiargs[MAXBUF];
+    char uri[MAXBUF];
+
+    // In real code, you'd probably want to refactor request_handle()
+    // or store these details with the fd.
+
+    request_serve_static(connfd, filename, sbuf.st_size);
+    close_or_die(connfd);
+}
+
+return NULL;
 }
 
 //

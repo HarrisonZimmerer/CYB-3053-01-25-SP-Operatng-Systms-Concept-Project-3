@@ -1,0 +1,4 @@
+/mnt/c/Users/Hlzim/Documents/GitHub/CYB-3053-01-25-SP-Operatng-Systms-Concept-Project-3/OSProj3-main/build/CMakeFiles/server.dir
+/mnt/c/Users/Hlzim/Documents/GitHub/CYB-3053-01-25-SP-Operatng-Systms-Concept-Project-3/OSProj3-main/build/CMakeFiles/client.dir
+/mnt/c/Users/Hlzim/Documents/GitHub/CYB-3053-01-25-SP-Operatng-Systms-Concept-Project-3/OSProj3-main/build/CMakeFiles/edit_cache.dir
+/mnt/c/Users/Hlzim/Documents/GitHub/CYB-3053-01-25-SP-Operatng-Systms-Concept-Project-3/OSProj3-main/build/CMakeFiles/rebuild_cache.dir
