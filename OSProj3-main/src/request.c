@@ -158,51 +158,38 @@ void request_serve_static(int fd, char *filename, int filesize) {
 //
 void* thread_request_serve_static(void* arg)
 {
-	// TODO: write code to actualy respond to HTTP requests
-  if (scheduling_algo = 0){//FIFO
+    int cur_buff_location = -1;
+    // TODO: write code to actualy respond to HTTP requests
+    if (scheduling_algo == 0){//FIFO
 
+      cur_buff_location == 0;
+    }
+  
+    if (scheduling_algo == 1){//SFF
+      int smallest = 99999999;
+      for (int i=0; i < buf_count; i++){    // Iterate through buffer
+        if (globalBuffer[i].size < smallest){ // checking for smallest request
+            smallest = globalBuffer[i].size; //updating smallest
+            index == i; //updating place of smallest
+        }   
+        return index; //return the place of smallest
+    }
+      
+      
+      cur_buff_location == 0;
+    }
+  
+    if (scheduling_algo == 2){//Random
+      cur_buff_location == rand() % buf_count;
+    }
+    webRequest threadRequest = globalBuffer[cur_buff_location]; //putting in another place
+    pthread_mutex_lock(&buf_mutex); //Safe way to make double sure no double taking
     
-  }
+    request_serve_static(threadRequest.fd, threadRequest.buffer, threadRequest.size); //Use thread to do request
+    buf_count--; //minus from buffer size
+    pthread_mutex_unlock(&buf_mutex); //let other thread take request
+    }
 
-  if (scheduling_algo = 1){//SFF
-
-
-  }
-
-  if (scheduling_algo = 2){//Random
-
-
-  }
-
-  while (1) {
-    int connfd;
-
-    pthread_mutex_lock(&buf_mutex);
-
-    while (buf_count == 0)  // wait if buffer empty
-        pthread_cond_wait(&buf_not_empty, &buf_mutex);
-
-    connfd = buffer[buf_front];
-    buf_front = (buf_front + 1) % MAX_REQUESTS;
-    buf_count--;
-
-    pthread_cond_signal(&buf_not_full);  // notify producers
-    pthread_mutex_unlock(&buf_mutex);
-
-    // Serve the request now that we have the fd
-    struct stat sbuf;
-    char filename[MAXBUF], cgiargs[MAXBUF];
-    char uri[MAXBUF];
-
-    // In real code, you'd probably want to refactor request_handle()
-    // or store these details with the fd.
-
-    request_serve_static(connfd, filename, sbuf.st_size);
-    close_or_die(connfd);
-}
-
-return NULL;
-}
 
 //
 // Initial handling of the request
@@ -212,11 +199,16 @@ void request_handle(int fd) {
     struct stat sbuf;
     char buf[MAXBUF], method[MAXBUF], uri[MAXBUF], version[MAXBUF];
     char filename[MAXBUF], cgiargs[MAXBUF];
-    
+    // Reject any attempt to traverse directories
+
 	// get the request type, file path and HTTP version
     readline_or_die(fd, buf, MAXBUF);
     sscanf(buf, "%s %s %s", method, uri, version);
     printf("method:%s uri:%s version:%s\n", method, uri, version);
+    if (strstr(uri, "..")) {
+      request_error(fd, uri, "403", "Forbidden", "directory traversal attempt blocked");
+      return;
+    }
 
 	// verify if the request type is GET or not
     if (strcasecmp(method, "GET")) {
@@ -233,16 +225,25 @@ void request_handle(int fd) {
 		request_error(fd, filename, "404", "Not found", "server could not find this file");
 		return;
     }
-    
+    if (strstr(filename, "..")) {
+      request_error(fd, uri, "403", "Forbidden", "directory traversal attempt blocked");
+      return;
+    }
 	// verify if requested content is static
     if (is_static) {
 		if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) {
 			request_error(fd, filename, "403", "Forbidden", "server could not read this file");
 			return;
 		}
+
+
 		
 		// TODO: write code to add HTTP requests in the buffer based on the scheduling policy
-
+    webRequest newRequest = {fd, filename, sbuf.st_size, 0}; //getting needed info for struct
+    if(buf_count<20){ //checking for buffer size
+        globalBuffer[buf_count] = newRequest; // making buffer for request
+        buf_count++; //increasing size for what in buffer
+    }
     } else {
 		request_error(fd, filename, "501", "Not Implemented", "server does not serve dynamic content request");
     }
